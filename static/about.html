@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About Us – MelodyCare</title>
+<meta name="description" content="MelodyCare is a child and family psychological care centre in Malaysia. Fictional content for a final year project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --deep:#0f3d33; --green:#16a34a; --mint:#52be94; --mist:#eef8f3; --paper:#fbfdfc;
+  --sun:#f3c969; --ink:#1b2f29; --muted:#5b6f68; --line:#d8e8e0;
+  --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  --sans:'Nunito Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.7;font-size:17px}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.2;color:var(--deep)}
+h2{font-size:clamp(28px,4vw,40px);margin-bottom:16px}
+h3{font-size:21px;margin-bottom:8px}
+p{max-width:64ch}
+section{padding:88px 0}
+
+/* top bar + nav */
+.topbar{background:var(--deep);color:#d6efe5;font-size:14px}
+.topbar .wrap{display:flex;gap:24px;justify-content:flex-end;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.topbar a{text-decoration:none}
+header.nav{position:sticky;top:0;z-index:10;background:rgba(251,253,252,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header.nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:68px}
+.brand{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--deep);text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand svg{width:30px;height:30px}
+nav ul{display:flex;gap:26px;list-style:none;align-items:center}
+nav a{text-decoration:none;font-weight:600;font-size:15px;color:var(--muted)}
+nav a:hover,nav a[aria-current]{color:var(--deep)}
+nav a[aria-current]{border-bottom:2px solid var(--mint);padding-bottom:3px}
+.btn{display:inline-block;padding:12px 24px;border-radius:999px;font-weight:700;text-decoration:none;font-size:15px;border:2px solid transparent;transition:background .2s}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover{background:#15803d}
+.btn-ghost{border-color:var(--deep);color:var(--deep)}
+.btn-ghost:hover{background:var(--mist)}
+nav .btn{padding:8px 20px;color:#fff}
+nav .btn:hover{color:#fff}
+
+/* hero */
+.hero{background:var(--mist);padding:0;overflow:hidden;position:relative}
+.hero .wrap{position:relative;padding-top:96px;padding-bottom:140px}
+.hero h1{font-size:clamp(38px,6.4vw,68px);max-width:15ch;margin-bottom:22px}
+.hero p{font-size:19px;color:var(--muted);margin-bottom:32px}
+.hero .actions{display:flex;gap:14px;flex-wrap:wrap}
+.staff{position:absolute;left:0;right:0;bottom:0;width:100%;height:150px;pointer-events:none}
+.staff line{stroke:var(--mint);stroke-width:1.5;opacity:.55}
+.staff .note{fill:var(--deep)}
+.staff .stem{stroke:var(--deep);stroke-width:2.5;opacity:1}
+.staff .sun{fill:var(--sun)}
+
+/* quote */
+.quote{background:var(--deep);color:#fff;padding:72px 0;text-align:center}
+.quote blockquote{font-family:var(--serif);font-size:clamp(24px,3.6vw,36px);line-height:1.4;max-width:24em;margin:0 auto}
+.quote cite{display:block;margin-top:18px;font-style:normal;font-size:15px;color:#a9d9c5}
+
+/* story */
+.story .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:64px;align-items:start}
+.story p+p{margin-top:16px}
+.timeline{list-style:none;border-left:3px solid var(--mint);padding-left:28px}
+.timeline li{position:relative;padding-bottom:28px}
+.timeline li:last-child{padding-bottom:0}
+.timeline li::before{content:"";position:absolute;left:-39px;top:7px;width:15px;height:15px;border-radius:50%;background:var(--paper);border:3px solid var(--green)}
+.timeline b{font-family:var(--serif);font-size:22px;color:var(--deep);display:block}
+.timeline span{color:var(--muted);font-size:15.5px}
+
+/* values */
+.values{background:var(--mist)}
+.values .row{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:40px;border-top:1px solid var(--line)}
+.values .item{padding:28px 28px 0 0}
+.values .item+.item{padding-left:28px;border-left:1px solid var(--line)}
+.values p{color:var(--muted);font-size:16px}
+.mv{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:56px}
+.mv h3{font-size:19px}
+.mv p{font-size:16.5px}
+
+/* services */
+.services .list{margin-top:36px;display:grid;grid-template-columns:1fr 1fr;column-gap:56px}
+.services .svc{padding:22px 0;border-bottom:1px solid var(--line)}
+.services .svc h3{font-size:19px;margin-bottom:4px}
+.services .svc p{font-size:15.5px;color:var(--muted)}
+.services .more{margin-top:32px}
+
+/* human + AI */
+.ai{background:var(--deep);color:#e3f4ec}
+.ai h2{color:#fff}
+.ai .grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.ai p{color:#c3e4d6}
+.ai ul{list-style:none;margin-top:8px}
+.ai li{padding:18px 0;border-bottom:1px solid rgba(255,255,255,.16)}
+.ai li:first-child{border-top:1px solid rgba(255,255,255,.16)}
+.ai li b{color:#fff;display:block;font-size:17px}
+.ai li span{font-size:15.5px;color:#b5dccb}
+.ai .note{margin-top:22px;font-size:15px;color:var(--sun)}
+
+/* team */
+.team .people{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin-top:40px}
+.person .av{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-size:28px;font-weight:600;color:var(--deep);margin-bottom:16px}
+.person:nth-child(1) .av{background:#bfe8d6}
+.person:nth-child(2) .av{background:#fbe6ae}
+.person:nth-child(3) .av{background:#cfe3f1}
+.person:nth-child(4) .av{background:#f4d3cf}
+.person h3{font-size:18px;margin-bottom:2px}
+.person .role{font-size:14.5px;font-weight:700;color:var(--green);margin-bottom:8px}
+.person p{font-size:15px;color:var(--muted)}
+
+/* contact */
+.contact{background:var(--mist)}
+.contact .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:64px}
+.contact dl{display:grid;grid-template-columns:110px 1fr;gap:14px 16px;margin-top:20px}
+.contact dt{font-weight:700;color:var(--deep)}
+.contact .crisis{background:#fff;border:1px solid var(--line);border-left:6px solid var(--sun);border-radius:10px;padding:24px 26px;align-self:start}
+.crisis h3{font-size:19px}
+.crisis strong{font-family:var(--serif);font-size:30px;color:var(--deep);display:block;margin:6px 0}
+.crisis p{font-size:15.5px;color:var(--muted)}
+
+footer{background:var(--deep);color:#a9d9c5;padding:36px 0;font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+footer p{max-width:60ch}
+
+@media (max-width:880px){
+  section{padding:64px 0}
+  nav ul li:not(:last-child){display:none}
+  .story .grid,.ai .grid,.contact .grid,.mv,.services .list{grid-template-columns:1fr;gap:36px}
+  .values .row{grid-template-columns:1fr}
+  .values .item,.values .item+.item{padding:24px 0;border-left:0;border-bottom:1px solid var(--line)}
+  .team .people{grid-template-columns:1fr 1fr}
+  .hero .wrap{padding-top:64px;padding-bottom:120px}
+  .topbar .wrap{justify-content:center}
+}
+@media (max-width:480px){.team .people{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <a href="tel:+60312345678">+60 3-1234 5678</a>
+  <a href="mailto:hello@melodycare.my">hello@melodycare.my</a>
+</div></div>
+
+<header class="nav"><div class="wrap">
+  <a class="brand" href="/about.html" aria-label="MelodyCare home">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#52be94"/><path d="M13 22.5V9.5l9-2v12" fill="none" stroke="#0f3d33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10.5" cy="22.5" r="2.6" fill="#0f3d33"/><circle cx="19.5" cy="19.5" r="2.6" fill="#0f3d33"/></svg>
+    MelodyCare
+  </a>
+  <nav aria-label="Main"><ul>
+    <li><a href="#story" aria-current="page">About us</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#approach">Our approach</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="/">Ask the assistant</a></li>
+    <li><a class="btn btn-primary" href="/login.html">Log in</a></li>
+  </ul></nav>
+</div></header>
+
+<main>
+<section class="hero" style="padding:0">
+  <div class="wrap">
+    <h1>Care that grows with your child, and with you</h1>
+    <p>MelodyCare is a private psychological care centre for children, teenagers and parents. We take time to understand each child first, then plan support that the whole family can sustain.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="#services">Explore our services</a>
+      <a class="btn btn-ghost" href="#contact">Book a first conversation</a>
+    </div>
+  </div>
+  <svg class="staff" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true">
+    <line x1="0" y1="40" x2="1200" y2="40"/><line x1="0" y1="62" x2="1200" y2="62"/><line x1="0" y1="84" x2="1200" y2="84"/><line x1="0" y1="106" x2="1200" y2="106"/><line x1="0" y1="128" x2="1200" y2="128"/>
+    <g class="stem"><line x1="212" y1="106" x2="212" y2="52"/><line x1="428" y1="84" x2="428" y2="30"/><line x1="644" y1="62" x2="644" y2="10"/><line x1="860" y1="84" x2="860" y2="30"/><line x1="1076" y1="106" x2="1076" y2="52"/></g>
+    <ellipse class="note" cx="200" cy="106" rx="14" ry="10"/>
+    <ellipse class="note" cx="416" cy="84" rx="14" ry="10"/>
+    <ellipse class="sun" cx="632" cy="62" rx="16" ry="11"/>
+    <ellipse class="note" cx="848" cy="84" rx="14" ry="10"/>
+    <ellipse class="note" cx="1064" cy="106" rx="14" ry="10"/>
+  </svg>
+</section>
+
+<div class="quote"><div class="wrap">
+  <blockquote>“When a parent is heard, a child is heard. When a family is steady, a child can grow.”</blockquote>
+  <cite>Dr. Lee Mei Ling, founder of MelodyCare</cite>
+</div></div>
+
+<section class="story" id="story">
+  <div class="wrap grid">
+    <div>
+      <h2>From one small studio to a connected circle of care</h2>
+      <p>MelodyCare began in 2009 with one clinical psychologist and a single therapy room. Her belief was simple: psychological care should be ethical, gentle and respectful of how children really develop.</p>
+      <p>Today our psychologists, child development specialists and life educators work together, so a family does not have to explain their story again every time they need a different kind of help.</p>
+      <p>We serve families across Malaysia, in person and online.</p>
+    </div>
+    <ol class="timeline" aria-label="Our milestones">
+      <li><b>2009</b><span>First therapy room opens in Petaling Jaya.</span></li>
+      <li><b>2013</b><span>Early Development Programme (EDP) launches.</span></li>
+      <li><b>2017</b><span>Parenting support coaching opens to families.</span></li>
+      <li><b>2021</b><span>Online consultation and life education programmes begin.</span></li>
+      <li><b>2026</b><span>MelodyCare Support System pilots AI-assisted parent support.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="values" id="values">
+  <div class="wrap">
+    <h2>What we hold on to</h2>
+    <p>Three promises we keep with every family, whatever the programme.</p>
+    <div class="row">
+      <div class="item"><h3>Patience over pressure</h3><p>Children change at their own pace. We plan around the child in front of us, not a timetable.</p></div>
+      <div class="item"><h3>Ethical care over quick results</h3><p>We explain what we see, why we suggest it, and what it will ask of you before we begin.</p></div>
+      <div class="item"><h3>Long-term trust</h3><p>Families and therapists build a relationship over years. We protect it with honesty and privacy.</p></div>
+    </div>
+    <div class="mv">
+      <div><h3>Our mission</h3><p>To give every child and family a safe, professional and compassionate place to understand their challenges and find a way forward.</p></div>
+      <div><h3>Our vision</h3><p>A Malaysia where families can reach good psychological support early, wherever they live.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="services" id="services">
+  <div class="wrap">
+    <h2>How we support families</h2>
+    <p>Seven services that can be used on their own or together.</p>
+    <div class="list">
+      <div class="svc"><h3>Early Development Programme (EDP)</h3><p>A structured, evidence-based programme for children with developmental, learning or behavioural challenges.</p></div>
+      <div class="svc"><h3>Parent Coaching</h3><p>Practical strategies and emotional support for parents, including parents who are struggling themselves.</p></div>
+      <div class="svc"><h3>Developmental and Learning Assessment</h3><p>A full picture of your child’s development, learning style and areas that need support.</p></div>
+      <div class="svc"><h3>Counselling and Psychotherapy</h3><p>Evidence-based therapy with qualified psychologists for children, teenagers and adults.</p></div>
+      <div class="svc"><h3>Social Skills Therapy</h3><p>Help for children who find it hard to communicate, interact and make friends.</p></div>
+      <div class="svc"><h3>Emotional Skills Workshops</h3><p>Emotional intelligence, social etiquette and resilience, taught in ways children enjoy.</p></div>
+      <div class="svc"><h3>Online Sessions</h3><p>Parenting coaching, EDP sessions and psychological consultation from home.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="ai" id="approach">
+  <div class="wrap grid">
+    <div>
+      <h2>Technology gives us time. People give the care.</h2>
+      <p>The MelodyCare Support System lets parents ask questions and find comfort between sessions. It gives our therapists a clearer view of how families are doing, so they can spend more of their time truly seeing the child.</p>
+      <p class="note">The chatbot is not a therapist and never replaces one.</p>
+    </div>
+    <ul>
+      <li><b>Parents get a calm place to start</b><span>Answers are drawn from our own guidance on child mental health and parenting.</span></li>
+      <li><b>Therapists see the trend, not just the visit</b><span>Mood patterns across conversations help them notice when a family needs a call.</span></li>
+      <li><b>People make every decision</b><span>Assessment, diagnosis and treatment plans always stay with our qualified team.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="team" id="team">
+  <div class="wrap">
+    <h2>The people you will meet</h2>
+    <p>A small, multidisciplinary team that stays with your family over time.</p>
+    <div class="people">
+      <div class="person"><div class="av" aria-hidden="true">LM</div><h3>Dr. Lee Mei Ling</h3><div class="role">Founder, Clinical Psychologist</div><p>Leads clinical practice and supervises our therapy team.</p></div>
+      <div class="person"><div class="av" aria-hidden="true">FH</div><h3>Ms. Farah Hana</h3><div class="role">Child Development Therapist</div><p>Runs assessments and the EDP programme.</p></div>
+      <div class="person"><div class="av" aria-hidden="true">TJ</div><h3>Mr. Tan Jun Hao</h3><div class="role">Life Education Lead</div><p>Designs programmes on emotions, friendship and resilience.</p></div>
+      <div class="person"><div class="av" aria-hidden="true">PN</div><h3>Ms. Priya Nair</h3><div class="role">Parenting Coach</div><p>Walks with parents through everyday challenges at home.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="wrap grid">
+    <div>
+      <h2>Talk to us</h2>
+      <p>Many families carry some worry about their child. A short first conversation helps us find the right kind of support early.</p>
+      <dl>
+        <dt>Address</dt><dd>Level 5, Menara Melodi, Jalan Harmoni 3, 47400 Petaling Jaya, Selangor</dd>
+        <dt>Phone</dt><dd>+60 3-1234 5678</dd>
+        <dt>WhatsApp</dt><dd>+60 12-345 6789</dd>
+        <dt>Email</dt><dd>hello@melodycare.my</dd>
+        <dt>Hours</dt><dd>Mon–Fri 9am–6pm, Sat 9am–1pm. Online appointments available.</dd>
+      </dl>
+      <p style="margin-top:28px"><a class="btn btn-primary" href="/login.html">Log in to the Support System</a></p>
+    </div>
+    <aside class="crisis">
+      <h3>If someone is in immediate distress</h3>
+      <strong>Helpline HEAL 15555</strong>
+      <p>Please call right away. Do not wait for an appointment.</p>
+    </aside>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">
+  <p>© 2026 MelodyCare. This website and all organisation details, people, addresses and contact numbers are fictional and created for a final year project only.</p>
+  <p>Content is for general reference and is not professional advice.</p>
+</div></footer>
+
+</body>
+</html>

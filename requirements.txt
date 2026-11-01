@@ -1,0 +1,18 @@
+# Versions taken from the local venv (Python 3.13.6).
+# langchain-community / langchain-text-splitters are NOT pinned to the local
+# 0.3.x versions, because those conflict with langchain-core 1.x on a fresh install.
+fastapi==0.143.1
+starlette==1.8.0
+uvicorn==0.54.0
+python-dotenv==1.0.1
+SQLAlchemy==2.0.35
+psycopg2-binary==2.9.13
+pydantic==2.14.1
+python-jose==3.5.0
+bcrypt==5.0.0
+langchain-core==1.6.10
+langchain-community>=0.4.2,<0.5
+langchain-text-splitters>=1.1,<2
+langchain-chroma==1.1.0
+langchain-google-genai==4.4.2
+chromadb==1.5.9

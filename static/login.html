@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MelodyCare Support System - Login</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --primary:#16a34a; --primary-dark:#15803d;
+  --bg:#f8fafc; --border:#e2e8f0; --text:#1e293b; --muted:#64748b;
+}
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); }
+.login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; }
+.login-card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:40px; width:100%; max-width:400px; }
+.login-card img { max-width:100px; margin-bottom:20px; }
+.login-card h1 { font-size:22px; font-weight:600; margin-bottom:6px; }
+.login-card p { color:var(--muted); font-size:14px; margin-bottom:28px; }
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:13px; font-weight:500; margin-bottom:6px; }
+.form-group input { width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-size:15px; outline:none; }
+.form-group input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(22,163,74,.1); }
+.btn-primary { width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-size:15px; font-weight:500; cursor:pointer; margin-top:8px; }
+.btn-primary:hover { background:var(--primary-dark); }
+.error-msg { color:#dc2626; font-size:13px; margin-top:8px; display:none; }
+.demo-hint { margin-top:20px; padding:12px; background:var(--bg); border-radius:8px; font-size:13px; color:var(--muted); line-height:1.8; }
+.demo-hint strong { color:var(--text); display:block; margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <h1>MelodyCare Support System</h1>
+    <p>Please log in to continue</p>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="emailInput" placeholder="your@email.com" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="passwordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <div class="error-msg" id="loginError">Invalid email or password.</div>
+    <button class="btn-primary" onclick="login()">Log In</button>
+    <a href="/" style="display:block;text-align:center;margin-top:14px;padding:11px;border:1.5px solid var(--primary);border-radius:10px;color:var(--primary-dark);font-weight:600;text-decoration:none;font-size:14px">Back to visitor chat</a>
+    <p style="text-align:center;margin:14px 0 0;font-size:13px"><a href="/about.html" style="color:var(--primary-dark)">About MelodyCare</a></p>
+  </div>
+</div>
+<script>
+async function login() {
+  const email = document.getElementById('emailInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !password) return;
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.style.display = 'block'; return; }
+    localStorage.setItem('melodycare_token', data.token);
+    localStorage.setItem('melodycare_user', JSON.stringify(data.user));
+    window.location.href = data.user.role === 'admin' ? '/admin.html' : '/user.html';
+  } catch(e) { errEl.style.display = 'block'; }
+}
+</script>
+</body>
+</html>

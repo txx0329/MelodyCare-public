@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MelodyCare Clinical Assistant</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --admin:#7c3aed; --admin-dark:#6d28d9; --admin-light:#ede9fe;
+  --bg:#f8fafc; --border:#e2e8f0; --text:#1e293b; --muted:#64748b;
+}
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; display:flex; }
+.sidebar { width:260px; background:#fff; border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; overflow:hidden; transition:width .25s ease; }
+.sidebar.collapsed { width:0; border-right:none; }
+.sidebar-inner { width:260px; padding:24px 20px; display:flex; flex-direction:column; height:100%; overflow-y:auto; }
+.sidebar img { max-width:100px; margin-bottom:12px; }
+.sidebar h2 { font-size:15px; font-weight:600; margin-bottom:4px; }
+.user-badge { display:inline-flex; align-items:center; gap:6px; background:var(--admin-light); color:var(--admin-dark); padding:4px 10px; border-radius:20px; font-size:12px; font-weight:500; margin-bottom:14px; }
+.sidebar p { font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:14px; }
+.divider { height:1px; background:var(--border); margin:10px 0; }
+.label { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+.logout-btn { margin-top:auto; padding:9px; border:1px solid var(--border); border-radius:8px; background:none; cursor:pointer; font-size:13px; color:var(--muted); }
+.logout-btn:hover { background:var(--bg); }
+.main { flex:1; display:flex; flex-direction:column; background:#fff; overflow:hidden; min-width:0; }
+.header { padding:16px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+.toggle-sidebar { background:none; border:1px solid var(--border); border-radius:8px; padding:6px 10px; cursor:pointer; font-size:16px; color:var(--muted); }
+.toggle-sidebar:hover { background:var(--bg); }
+.header-text h1 { font-size:20px; font-weight:600; }
+.header-text p { font-size:13px; color:var(--muted); margin-top:2px; }
+.admin-badge { background:var(--admin-light); color:var(--admin-dark); font-size:11px; font-weight:600; padding:3px 8px; border-radius:12px; margin-left:8px; }
+.messages { flex:1; overflow-y:auto; padding:20px 28px; display:flex; flex-direction:column; gap:18px; }
+.message { display:flex; gap:10px; align-items:flex-start; }
+.message.admin-user { flex-direction:row-reverse; }
+.avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.avatar.admin-bot { background:var(--admin-light); }
+.avatar.user { background:#dbeafe; }
+.bubble { max-width:72%; padding:11px 15px; border-radius:16px; font-size:14px; white-space:pre-wrap; }
+/* .bubble { line-height:1.65; } */
+.message.admin-bot .bubble { background:var(--admin-light); border-top-left-radius:4px; }
+.message.admin-user .bubble { background:var(--admin); color:#fff; border-top-right-radius:4px; border-top-left-radius:16px; }
+.typing-dots { display:flex; gap:4px; padding:4px 0; }
+.typing-dots span { width:7px; height:7px; background:var(--muted); border-radius:50%; animation:bounce 1.2s infinite; }
+.typing-dots span:nth-child(2){animation-delay:.2s} .typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+.quick-cmds { padding:8px 28px; display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid var(--border); }
+.quick-cmd { background:var(--admin-light); color:var(--admin-dark); border:none; border-radius:16px; padding:5px 12px; font-size:12px; cursor:pointer; white-space:nowrap; }
+.quick-cmd:hover { background:#ddd6fe; }
+.input-area { padding:16px 28px; border-top:1px solid var(--border); }
+.input-row { display:flex; gap:10px; align-items:center; background:var(--bg); border:1px solid var(--border); border-radius:24px; padding:7px 7px 7px 18px; }
+.input-row:focus-within { border-color:var(--admin); box-shadow:0 0 0 3px rgba(124,58,237,.1); }
+.input-row input { flex:1; border:none; background:none; font-size:14px; color:var(--text); outline:none; }
+.input-row input::placeholder { color:var(--muted); }
+.send-btn { width:34px; height:34px; background:var(--admin); color:#fff; border:none; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.send-btn:hover { background:var(--admin-dark); }
+.send-btn:disabled { background:var(--border); cursor:not-allowed; }
+.bubble table { border-collapse:collapse; width:100%; margin:8px 0; font-size:13px; }
+.bubble th { background:#ede9fe; padding:7px 10px; text-align:left; font-weight:600; border:1px solid #ddd6fe; }
+.bubble td { padding:6px 10px; border:1px solid #ede9fe; }
+.bubble tr:nth-child(even) { background:#f5f3ff; }
+.bubble strong { font-weight:600; }
+.bubble ul { padding-left:18px; }
+/* .bubble ul { margin:4px 0; } */
+/* .bubble li { margin:2px 0; }
+.bubble p { margin:4px 0; } */
+</style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-inner">
+    <h2>MelodyCare Clinical Assistant</h2>
+    <div class="user-badge">🔐 <span id="userName"></span></div>
+    <p>You are logged in as a therapist. Use the assistant to retrieve patient records, review appointments, and track progress.</p>
+    <div class="divider"></div>
+    <button onclick="showBIDashboard()" style="width:100%;padding:9px;background:var(--admin-light);color:var(--admin-dark);border:1px solid var(--admin);border-radius:8px;font-size:13px;cursor:pointer;font-weight:500;margin-bottom:12px;text-align:left">📊 Business Intelligence Dashboard</button>
+    <div class="divider"></div>
+    <div class="label">Recent chats</div>
+    <div id="recentSessions" style="margin-bottom:12px">
+      <div style="font-size:12px;color:var(--muted)">Loading...</div>
+    </div>
+    <button onclick="newChat()" style="width:100%;padding:8px;background:var(--admin-light);color:var(--admin-dark);border:none;border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:12px">+ New chat</button>
+    <button class="logout-btn" onclick="logout()">Log out</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="header">
+    <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+    <div class="header-text">
+      <h1>🌿 MelodyCare Parent Support <span class="admin-badge">THERAPIST</span></h1>
+      <p>Clinical data assistant for therapists at MelodyCare.</p>
+    </div>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="quick-cmds">
+    <button class="quick-cmd" onclick="quickCmd('Show me all patients and their diagnoses')">All patients</button>
+    <button class="quick-cmd" onclick="quickCmd(`Show me this week's appointments`)">This week's appointments</button>
+    <button class="quick-cmd" onclick="quickCmd(`Categorise this week's appointments by age group`)">By age group</button>
+    <button class="quick-cmd" onclick='quickCmd("Summarise Kay Lim treatment history")'>Kay's summary</button>
+    <button class="quick-cmd" onclick="quickCmd('Flag any patients with risk indicators in their notes')">Risk flags</button>
+    <button class="quick-cmd" onclick="quickCmd('Show me Sarah sentiment record')">Sarah's mood</button>
+  </div>
+  <div class="input-area">
+    <div class="input-row">
+      <input type="text" id="msgInput" placeholder="Ask about patients, appointments, records..." onkeydown="if(event.key==='Enter')sendMessage()">
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+      </button>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+let token = localStorage.getItem('melodycare_token');
+let currentUser = JSON.parse(localStorage.getItem('melodycare_user') || 'null');
+let busy = false;
+let currentSessionId = null;
+let sidebarOpen = true;
+let _biData = [], _therapistData = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!token || !currentUser || currentUser.role !== 'admin') {
+    window.location.href = '/login.html'; return;
+  }
+  document.getElementById('userName').textContent = currentUser.name;
+  addMsg('admin-bot', `Hello ${currentUser.name}. 👋\nI'm your clinical data assistant. I have access to all patient records, treatment histories, and this week's appointment schedule.\n\nYou can ask me to:\n• Retrieve and summarise patient records\n• Show and categorise appointments\n• Flag risk indicators in clinical notes\n• Track patient progress over time\n\nWhat would you like to know?`);
+  loadRecentSessions();
+  loadBIData();
+});
+
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+}
+
+function logout() {
+  localStorage.removeItem('melodycare_token');
+  localStorage.removeItem('melodycare_user');
+  window.location.href = '/login.html';
+}
+
+function quickCmd(text) {
+  document.getElementById('msgInput').value = text;
+  sendMessage();
+}
+
+async function loadBIData() {
+  try {
+    const r1 = await fetch('/api/analytics/overview', { headers: {'Authorization': 'Bearer ' + token} });
+    _biData = await r1.json();
+    const r2 = await fetch('/api/analytics/therapist-performance', { headers: {'Authorization': 'Bearer ' + token} });
+    _therapistData = await r2.json();
+  } catch(e) { console.error(e); }
+}
+
+async function loadRecentSessions() {
+  try {
+    const res = await fetch('/api/sessions', { headers: {'Authorization': 'Bearer ' + token} });
+    const sessions = await res.json();
+    const container = document.getElementById('recentSessions');
+    if (!sessions.length) { container.innerHTML = '<div style="font-size:12px;color:var(--muted)">No previous chats</div>'; return; }
+    container.innerHTML = sessions.map(s => `
+      <div onclick="loadSession(${s.id})" style="padding:7px 10px;border-radius:8px;cursor:pointer;font-size:12px;margin-bottom:4px;background:${currentSessionId===s.id?'var(--admin-light)':'transparent'};border:1px solid ${currentSessionId===s.id?'var(--admin)':'var(--border)'}">
+        <div style="color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.preview}</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">${new Date(s.created_at).toLocaleDateString()} · ${s.message_count} messages</div>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function loadSession(sessionId) {
+  currentSessionId = sessionId;
+  const res = await fetch(`/api/sessions/${sessionId}/messages`, {
+    headers: {'Authorization': 'Bearer ' + token}
+  });
+  const messages = await res.json();
+  document.getElementById('messages').innerHTML = '';
+
+  for (const m of messages) {
+    addMsg(m.role === 'user' ? 'admin-user' : 'admin-bot', m.content);
+
+    // Re-render sentiment chart if this was a sentiment query
+    if (m.role === 'user') {
+      const lower = m.content.toLowerCase();
+      if (lower.includes('sentiment') || lower.includes('mood record') || lower.includes('feeling record')) {
+        const nameMap = {
+          'sarah': 'sarah', 'kay': 'sarah',
+          'ahmad': 'ahmad', 'adam': 'ahmad',
+          'priya': 'priya', 'arya': 'priya'
+        };
+        for (const [keyword, parentName] of Object.entries(nameMap)) {
+          if (lower.includes(keyword)) {
+            const r = await fetch(`/api/users/by-name?name=${parentName}`, {
+              headers: {'Authorization': 'Bearer ' + token}
+            });
+            const users = await r.json();
+            if (users.length) {
+              await showSentimentChart(users[0].id, users[0].name);
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+  loadRecentSessions();
+}
+
+function newChat() {
+  currentSessionId = null;
+  document.getElementById('messages').innerHTML = '';
+  addMsg('admin-bot', `Hello ${currentUser.name}. 👋\n\nWhat would you like to know?`);
+  loadRecentSessions();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const msg = input.value.trim();
+  if (!msg || busy) return;
+  
+  addMsg('admin-user', msg);
+  input.value = '';
+  busy = true;
+  document.getElementById('sendBtn').disabled = true;
+  const lid = showLoading();
+
+  try {
+    const lowerMsg = msg.toLowerCase();
+    
+    // ⚡【优化 1】：并行预检查是否涉及 Sentiment/Mood 问询，如果是，提前异步获取用户信息
+    let userLookupPromise = Promise.resolve(null);
+    if (lowerMsg.includes('sentiment') || lowerMsg.includes('mood') || lowerMsg.includes('feeling record')) {
+      const nameMap = {
+        'sarah': 'sarah', 'kay': 'sarah',
+        'ahmad': 'ahmad', 'adam': 'ahmad',
+        'priya': 'priya', 'arya': 'priya'
+      };
+      for (const [keyword, parentName] of Object.entries(nameMap)) {
+        if (lowerMsg.includes(keyword)) {
+          userLookupPromise = fetch(`/api/users/by-name?name=${parentName}`, {
+            headers: {'Authorization': 'Bearer ' + token}
+          }).then(r => r.json()).catch(() => null);
+          break;
+        }
+      }
+    }
+
+    // ⚡【优化 2】：发起聊天请求
+    const chatPromise = fetch('/api/admin/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token},
+      body: JSON.stringify({message: msg, session_id: currentSessionId})
+    });
+
+    // ⚡【优化 3】：使用 Promise.all 让聊天请求和用户信息查询同时并发执行！
+    const [res, users] = await Promise.all([chatPromise, userLookupPromise]);
+
+    const data = await res.json();
+    removeLoading(lid);
+    if (res.status === 401) { logout(); return; }
+    if (!res.ok) throw new Error(data.detail || 'Error');
+    
+    addMsg('admin-bot', data.answer);
+    if (data.session_id) { currentSessionId = data.session_id; loadRecentSessions(); }
+
+    // 如果拿到了用户信息，直接展示情绪图表，无须额外二次等待
+    if (users && users.length) {
+      await showSentimentChart(users[0].id, users[0].name);
+    }
+
+  } catch(e) {
+    removeLoading(lid);
+    addMsg('admin-bot', 'Something went wrong: ' + e.message);
+  }
+
+  busy = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+async function showBIDashboard() {
+  const data = _biData;
+  const therapistData = _therapistData;
+  document.getElementById('messages').innerHTML = '';
+
+  // Fetch extra data for last check-in
+  const sessionRes = await fetch('/api/analytics/overview', {
+    headers: {'Authorization': 'Bearer ' + token}
+  });
+
+  const riskParents = data.filter(d => d.avg_sentiment_score <= 2);
+  const thisWeekAppts = _biData.reduce ? 0 : 0;
+
+  const dashboard = document.createElement('div');
+  dashboard.style.cssText = 'padding:20px;width:100%;overflow-y:auto';
+  dashboard.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h2 style="font-size:18px;font-weight:600">📊 Business Intelligence Dashboard</h2>
+      <button onclick="newChat()" style="padding:6px 12px;background:none;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;color:var(--muted)">← Back to chat</button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div style="background:var(--admin-light);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--admin)">${data.length}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Active Parents</div>
+        <div style="font-size:11px;color:var(--admin);margin-top:2px">${data.reduce((a,b)=>a+b.total_messages,0)} total messages</div>
+      </div>
+      <div style="background:#dcfce7;border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:#16a34a">${data.length ? (data.reduce((a,b)=>a+b.total_messages,0)/data.length).toFixed(1) : 0}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Avg Messages/Parent</div>
+        <div style="font-size:11px;color:#16a34a;margin-top:2px">Engagement rate</div>
+      </div>
+      <div style="background:#fef2f2;border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:#dc2626">${riskParents.length}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">High Risk Parents</div>
+        <div style="font-size:11px;color:#dc2626;margin-top:2px">Score ≤ 2/5</div>
+      </div>
+      <div style="background:#fef3c7;border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:#d97706">${data.reduce((a,b)=>a+b.complaints,0)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Total Complaints</div>
+        <div style="font-size:11px;color:#d97706;margin-top:2px">${data.reduce((a,b)=>a+b.praises,0)} praises</div>
+      </div>
+    </div>
+
+    <!-- Risk Alert -->
+    ${riskParents.length > 0 ? `
+    <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:16px;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:600;color:#dc2626;margin-bottom:10px">⚠️ Parents Requiring Immediate Attention</div>
+      ${riskParents.map(d => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #fecaca">
+          <div>
+            <span style="font-weight:600;color:#7f1d1d">${d.parent_name}</span>
+            <span style="font-size:12px;color:#dc2626;margin-left:8px">Score ${d.avg_sentiment_score}/5 (${d.avg_sentiment_label})</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            ${d.complaints > 0 ? `<span style="background:#fecaca;color:#dc2626;padding:2px 8px;border-radius:10px;font-size:11px">${d.complaints} complaint${d.complaints>1?'s':''}</span>` : ''}
+            <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:10px;font-size:11px">⚡ Action needed</span>
+            <button onclick="viewParentMood(${d.user_id}, '${d.parent_name}')" style="background:var(--admin);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">View →</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    ` : `
+    <div style="background:#dcfce7;border:1px solid #86efac;border-radius:12px;padding:12px;margin-bottom:20px;font-size:13px;color:#15803d">
+      ✅ No parents currently flagged as high risk.
+    </div>
+    `}
+
+    <!-- Parent Status Table -->
+    <div style="background:var(--bg);border-radius:12px;padding:16px;border:1px solid var(--border);margin-bottom:20px">
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">👨‍👩‍👧 Parent Status Overview</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);background:var(--bg)">
+            <th style="padding:10px 8px;text-align:left;font-weight:600">Parent</th>
+            <th style="padding:10px 8px;text-align:left;font-weight:600">Child / Diagnosis</th>
+            <th style="padding:10px 8px;text-align:left;font-weight:600">Therapist</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Avg Score</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Dominant Mood</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Trend</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Sessions</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Risk Level</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(d => {
+            const risk = d.avg_sentiment_score <= 2 ? 'High' : d.avg_sentiment_score <= 3 ? 'Medium' : 'Low';
+            const riskColor = risk === 'High' ? '#dc2626' : risk === 'Medium' ? '#d97706' : '#16a34a';
+            const riskBg = risk === 'High' ? '#fef2f2' : risk === 'Medium' ? '#fef3c7' : '#dcfce7';
+            return `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:10px 8px;font-weight:500">${d.parent_name}</td>
+              <td style="padding:10px 8px">${d.children.map(c=>`<div>${c.name}</div><div style="color:var(--muted);font-size:11px">${c.diagnosis}</div>`).join('')}</td>
+              <td style="padding:10px 8px;font-size:12px">${d.therapists.join('<br>')}</td>
+              <td style="padding:10px 8px;text-align:center">
+                <div style="font-weight:700;font-size:16px;color:${d.avg_sentiment_score>=4?'#16a34a':d.avg_sentiment_score>=3?'#d97706':'#dc2626'}">${d.avg_sentiment_score}/5</div>
+                <div style="font-size:11px;color:var(--muted)">${d.avg_sentiment_label}</div>
+              </td>
+              <td style="padding:10px 8px;text-align:center">
+                <span style="padding:3px 10px;border-radius:12px;font-size:11px;background:${d.dominant_sentiment==='positive'||d.dominant_sentiment==='hopeful'?'#dcfce7':d.dominant_sentiment==='neutral'?'#f1f5f9':'#fef2f2'};color:${d.dominant_sentiment==='positive'||d.dominant_sentiment==='hopeful'?'#16a34a':d.dominant_sentiment==='neutral'?'#64748b':'#dc2626'}">${d.dominant_sentiment}</span>
+              </td>
+              <td style="padding:10px 8px;text-align:center">
+                <span style="padding:3px 10px;border-radius:12px;font-size:11px;background:${d.trend==='improving'?'#dcfce7':d.trend==='stable'?'#f1f5f9':'#fef2f2'};color:${d.trend==='improving'?'#16a34a':d.trend==='stable'?'#64748b':'#dc2626'}">${d.trend==='improving'?'↑ improving':d.trend==='stable'?'→ stable':'↓ declining'}</span>
+              </td>
+              <td style="padding:10px 8px;text-align:center">
+                <div style="font-weight:600">${d.total_messages}</div>
+                <div style="font-size:11px;color:var(--muted)">messages</div>
+              </td>
+              <td style="padding:10px 8px;text-align:center">
+                <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${riskBg};color:${riskColor}">${risk}</span>
+              </td>
+              <td style="padding:10px 8px;text-align:center">
+                <button onclick="viewParentMood(${d.user_id}, '${d.parent_name}')" style="background:var(--admin-light);color:var(--admin-dark);border:1px solid var(--admin);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">Mood →</button>
+              </td>
+            </tr>
+          `}).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Sentiment Distribution -->
+    <div style="background:var(--bg);border-radius:12px;padding:16px;border:1px solid var(--border);margin-bottom:20px">
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">🎭 Sentiment Distribution by Parent</h3>
+      ${data.map(d => `
+        <div style="margin-bottom:12px">
+          <div style="font-size:13px;font-weight:500;margin-bottom:6px">${d.parent_name}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${['positive','hopeful','neutral','anxious','distressed'].map(label => {
+              const count = d.dominant_sentiment === label ? 1 : 0;
+              return '';
+            }).join('')}
+            <span style="padding:3px 8px;border-radius:10px;font-size:11px;background:#dcfce7;color:#16a34a">Latest: ${d.latest_sentiment}</span>
+            <span style="padding:3px 8px;border-radius:10px;font-size:11px;background:var(--admin-light);color:var(--admin-dark)">Dominant: ${d.dominant_sentiment}</span>
+            <span style="padding:3px 8px;border-radius:10px;font-size:11px;background:${d.trend==='improving'?'#dcfce7':d.trend==='stable'?'#f1f5f9':'#fef2f2'};color:${d.trend==='improving'?'#16a34a':d.trend==='stable'?'#64748b':'#dc2626'}">${d.trend==='improving'?'↑':d.trend==='stable'?'→':'↓'} ${d.trend}</span>
+            ${d.complaints > 0 ? `<span style="padding:3px 8px;border-radius:10px;font-size:11px;background:#fef2f2;color:#dc2626">⚠️ ${d.complaints} complaint${d.complaints>1?'s':''}</span>` : ''}
+            ${d.praises > 0 ? `<span style="padding:3px 8px;border-radius:10px;font-size:11px;background:#dcfce7;color:#16a34a">👍 ${d.praises} praise${d.praises>1?'s':''}</span>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Therapist Performance -->
+    <div style="background:var(--bg);border-radius:12px;padding:16px;border:1px solid var(--border)">
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">👨‍⚕️ Therapist Performance</h3>
+      ${therapistData.length === 0 ? '<p style="color:var(--muted);font-size:13px">No therapist data yet.</p>' : `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border)">
+            <th style="padding:10px 8px;text-align:left;font-weight:600">Therapist</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Interactions</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Avg Satisfaction</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Complaints</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Praises</th>
+            <th style="padding:10px 8px;text-align:center;font-weight:600">Performance</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${therapistData.map(t => {
+            const perf = t.avg_sentiment_score >= 4 ? 'Good' : t.avg_sentiment_score >= 3 ? 'Average' : 'Needs Review';
+            const perfColor = t.avg_sentiment_score >= 4 ? '#16a34a' : t.avg_sentiment_score >= 3 ? '#d97706' : '#dc2626';
+            const perfBg = t.avg_sentiment_score >= 4 ? '#dcfce7' : t.avg_sentiment_score >= 3 ? '#fef3c7' : '#fef2f2';
+            return `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:10px 8px;font-weight:500">${t.therapist}</td>
+              <td style="padding:10px 8px;text-align:center">${t.total_interactions}</td>
+              <td style="padding:10px 8px;text-align:center">
+                <div style="font-weight:700;color:${perfColor}">${t.avg_sentiment_score}/5</div>
+                <div style="font-size:11px;color:var(--muted)">${t.satisfaction_rate}%</div>
+              </td>
+              <td style="padding:10px 8px;text-align:center">
+                ${t.complaints > 0 ? `<span style="color:#dc2626;font-weight:600">${t.complaints}</span>` : '<span style="color:#16a34a">0</span>'}
+              </td>
+              <td style="padding:10px 8px;text-align:center">
+                ${t.praises > 0 ? `<span style="color:#16a34a;font-weight:600">${t.praises}</span>` : '0'}
+              </td>
+              <td style="padding:10px 8px;text-align:center">
+                <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${perfBg};color:${perfColor}">${perf}</span>
+              </td>
+            </tr>
+          `}).join('')}
+        </tbody>
+      </table>
+      `}
+    </div>
+  `;
+
+  document.getElementById('messages').appendChild(dashboard);
+}
+
+function addMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div'); div.className = 'message ' + role;
+  const av = document.createElement('div'); av.className = 'avatar ' + role;
+  av.textContent = role === 'admin-user' ? '👨‍⚕️' : '🔐';
+  const bub = document.createElement('div'); bub.className = 'bubble';
+  if (role === 'admin-user') { bub.textContent = text; } else { const cleaned = text.replace(/\n\s*\n(\s*[-•*])/g, '\n$1'); bub.innerHTML = marked.parse(cleaned); }
+  div.appendChild(av); div.appendChild(bub);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showLoading() {
+  const msgs = document.getElementById('messages');
+  const id = 'l'+Date.now();
+  const div = document.createElement('div'); div.className='message admin-bot'; div.id=id;
+  const av = document.createElement('div'); av.className='avatar admin-bot'; av.textContent='🔐';
+  const bub = document.createElement('div'); bub.className='bubble';
+  bub.innerHTML='<div class="typing-dots"><span></span><span></span><span></span></div>';
+  div.appendChild(av); div.appendChild(bub); msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+function removeLoading(id) { const el=document.getElementById(id); if(el) el.remove(); }
+
+async function showSentimentChart(userId, parentName) {
+  try {
+    const res = await fetch(`/api/analytics/sentiment-history/${userId}`, {
+      headers: {'Authorization': 'Bearer ' + token}
+    });
+    const d = await res.json();
+    if (!d.data || !d.data.length) {
+      addMsg('admin-bot', `No sentiment data found for ${parentName} yet.`);
+      return;
+    }
+
+    const s = d.summary;
+    const trendIcon = s.trend === 'improving' ? '↑' : s.trend === 'declining' ? '↓' : '→';
+    const trendColor = s.trend === 'improving' ? '#22c55e' : s.trend === 'declining' ? '#ef4444' : '#64748b';
+
+    const msgs = document.getElementById('messages');
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'width:100%;max-width:800px';
+
+    const chartId = 'sc_' + Date.now();
+    wrapper.innerHTML = `
+      <div style="background:var(--admin-light);border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--admin-dark)">
+          📈 ${parentName}'s Sentiment Record
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+          <div style="background:#fff;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:${s.avg_score>=4?'#22c55e':s.avg_score>=3?'#eab308':'#ef4444'}">${s.avg_score}/5</div>
+            <div style="font-size:11px;color:var(--muted)">Avg Score</div>
+            <div style="font-size:12px;font-weight:500;color:var(--admin)">${s.avg_label}</div>
+          </div>
+          <div style="background:#fff;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:${trendColor}">${trendIcon}</div>
+            <div style="font-size:11px;color:var(--muted)">Trend</div>
+            <div style="font-size:12px;font-weight:500;color:var(--admin)">${s.trend}</div>
+          </div>
+          <div style="background:#fff;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:${s.alerts>0?'#ef4444':'#22c55e'}">${s.alerts}</div>
+            <div style="font-size:11px;color:var(--muted)">Low Mood Alerts</div>
+            <div style="font-size:12px;font-weight:500;color:var(--admin)">${s.alerts>0?'Needs attention':'All good'}</div>
+          </div>
+          <div style="background:#fff;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--admin)">${s.total_messages}</div>
+            <div style="font-size:11px;color:var(--muted)">Total Check-ins</div>
+            <div style="font-size:12px;font-weight:500;color:var(--admin)">Latest: ${s.latest_label}</div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:16px">
+          <canvas id="${chartId}" height="200"></canvas>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--admin-dark)">
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            ${['Bad','Poor','Average','Good','Happy'].map((l,i)=>`
+              <span style="display:flex;align-items:center;gap:4px">
+                <span style="width:12px;height:12px;border-radius:50%;background:${['#ef4444','#f97316','#eab308','#84cc16','#22c55e'][i]};display:inline-block"></span>
+                <span>${i+1} - ${l}</span>
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      ${s.alerts > 0 ? `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:600;color:#dc2626;margin-bottom:6px">⚠️ Low Mood Detected (score ≤ 2)</div>
+          ${d.data.filter(m=>m.score_5<=2).map(m=>`
+            <div style="font-size:12px;color:#7f1d1d;padding:4px 0;border-bottom:1px solid #fecaca">
+              <span style="font-weight:500">${m.timestamp}</span> — "${m.message_preview}"
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <div style="background:var(--bg);border-radius:8px;padding:12px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">📝 Conversation Log</div>
+        <div style="max-height:200px;overflow-y:auto">
+          ${d.data.map(m=>`
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="background:${m.color};color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;white-space:nowrap;flex-shrink:0">${m.label}</span>
+              <span style="color:var(--muted);flex-shrink:0">${m.timestamp}</span>
+              <span style="color:var(--text)">"${m.message_preview}"</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message admin-bot';
+    const av = document.createElement('div');
+    av.className = 'avatar admin-bot'; av.textContent = '🔐';
+    msgDiv.appendChild(av); msgDiv.appendChild(wrapper);
+    msgs.appendChild(msgDiv);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    setTimeout(() => {
+      new Chart(document.getElementById(chartId), {
+        type: 'line',
+        data: {
+          labels: d.data.map(m => m.date),
+          datasets: [{
+            label: 'Sentiment Score',
+            data: d.data.map(m => m.score_5),
+            borderColor: '#7c3aed',
+            backgroundColor: 'rgba(124,58,237,0.08)',
+            pointBackgroundColor: d.data.map(m => m.color),
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 7,
+            pointHoverRadius: 9,
+            tension: 0.4,
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              min: 0.5, max: 5.5,
+              ticks: {
+                stepSize: 1,
+                callback: v => ({1:'😢 Bad',2:'😟 Poor',3:'😐 Average',4:'😊 Good',5:'😄 Happy'}[v] || '')
+              },
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: { grid: { display: false } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: ctx => d.data[ctx[0].dataIndex].timestamp,
+                label: ctx => {
+                  const pt = d.data[ctx.dataIndex];
+                  return [`Score: ${pt.score_5}/5 — ${pt.label}`, `"${pt.message_preview}"`];
+                }
+              },
+              backgroundColor: 'rgba(15,15,15,0.85)',
+              padding: 12,
+              cornerRadius: 8,
+            }
+          }
+        }
+      });
+    }, 100);
+
+  } catch(e) {
+    console.error(e);
+    addMsg('admin-bot', 'Failed to load sentiment chart: ' + e.message);
+  }
+}
+
+async function viewParentMood(userId, parentName) {
+  // Clear dashboard and show sentiment chart directly
+  document.getElementById('messages').innerHTML = '';
+  await showSentimentChart(userId, parentName);
+  // Add back button
+  const backBtn = document.createElement('div');
+  backBtn.style.cssText = 'padding:12px 0;';
+  backBtn.innerHTML = `<button onclick="showBIDashboard()" style="padding:6px 14px;background:none;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;color:var(--muted)">← Back to Dashboard</button>`;
+  document.getElementById('messages').prepend(backBtn);
+}
+</script>
+</body>
+</html>

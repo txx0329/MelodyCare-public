@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MelodyCare – Ask us anything</title>
+<style>
+:root{--g:#16a34a;--gd:#0f3d33;--bg:#fbfdfc;--line:#dfe9e4;--ink:#1b2f29;--muted:#66796f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);height:100vh;height:100dvh;display:flex;flex-direction:column}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 22px}
+.brand{font-weight:700;color:var(--gd);font-size:19px;text-decoration:none}
+header nav{display:flex;gap:10px;align-items:center}
+header a,header button{font:600 14px inherit;font-family:inherit;color:var(--gd);text-decoration:none;background:none;border:0;cursor:pointer;padding:8px 12px;border-radius:999px}
+header a:hover,header button:hover{background:#eef8f3}
+header a.login{background:var(--g);color:#fff}header a.login:hover{background:#15803d}
+main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.wrap{width:100%;max-width:740px;margin:0 auto;padding:0 20px;flex:1;display:flex;flex-direction:column}
+#empty{margin:auto;text-align:center;padding:24px 0}
+#empty h1{font-size:clamp(26px,4.5vw,36px);color:var(--gd);margin-bottom:8px}
+#empty p{color:var(--muted);margin-bottom:26px}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:560px;margin:0 auto}
+.chips button{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;font:inherit;font-size:14.5px;text-align:left;cursor:pointer;color:var(--ink)}
+.chips button:hover{border-color:var(--g);background:#f3fbf6}
+#msgs{padding:10px 0 20px}
+.m{margin:18px 0;line-height:1.65;font-size:15.5px;white-space:pre-wrap;word-wrap:break-word}
+.m.user{background:#eaf5ef;padding:10px 16px;border-radius:18px;margin-left:auto;width:fit-content;max-width:85%}
+.src{font-size:12px;color:var(--muted);margin-top:6px}
+.bar{padding:8px 20px 6px}
+.box{max-width:740px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;border:1.5px solid var(--line);border-radius:26px;background:#fff;padding:8px 8px 8px 20px;box-shadow:0 2px 10px rgba(15,61,51,.06)}
+.box:focus-within{border-color:var(--g)}
+textarea{flex:1;border:0;outline:0;resize:none;font:inherit;font-size:15.5px;max-height:140px;padding:8px 0;background:none;color:var(--ink)}
+#send{width:40px;height:40px;border-radius:50%;border:0;background:var(--g);color:#fff;font-size:18px;cursor:pointer}
+#send:disabled{opacity:.4;cursor:default}
+.foot{text-align:center;font-size:12px;color:var(--muted);padding:6px 20px 12px;line-height:1.5}
+.mc-crisis{max-width:740px}
+@media(max-width:560px){.chips{grid-template-columns:1fr}}
+</style></head><body>
+<header>
+  <a class="brand" href="/">MelodyCare</a>
+  <nav>
+    <button id="newChat" style="display:none" onclick="location.reload()">New chat</button>
+    <a href="/about.html">About us</a>
+    <a class="login" id="loginLink" href="/login.html">Log in</a>
+  </nav>
+</header>
+<main><div class="wrap">
+  <div id="empty">
+    <h1>How can we help you today?</h1>
+    <p>Ask about our centre, services and team, or share what is on your mind.</p>
+    <div class="chips" id="chips">
+      <button>Where is your clinic located?</button>
+      <button>Do you provide parking?</button>
+      <button>What services do you offer?</button>
+      <button>Which doctors and therapists do you have?</button>
+    </div>
+  </div>
+  <div id="msgs"></div>
+</div></main>
+<div class="bar"><div class="box">
+  <textarea id="inp" rows="1" maxlength="600" placeholder="Ask MelodyCare anything…" aria-label="Message"></textarea>
+  <button id="send" aria-label="Send">↑</button>
+</div></div>
+<div class="foot" id="foot">Visitor mode: nothing is saved and no child records are used. General information only, not medical advice.<br>Demo project: all centre details are fictional.</div>
+<div id="messages" style="display:none"></div>
+<script>
+var hist = [], busy = false, $ = function (i) { return document.getElementById(i); };
+try { var u = JSON.parse(localStorage.getItem('melodycare_user') || 'null');
+  if (localStorage.getItem('melodycare_token') && u) { $('loginLink').textContent = 'My dashboard'; $('loginLink').href = u.role === 'admin' ? '/admin.html' : '/user.html'; } } catch (e) {}
+function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function add(role, text, sources) {
+  var d = document.createElement('div'); d.className = 'm ' + role;
+  d.innerHTML = esc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  if (sources && sources.length) { var s = document.createElement('div'); s.className = 'src'; s.textContent = 'Source: ' + sources.join(', '); d.appendChild(s); }
+  $('msgs').appendChild(d); $('msgs').scrollIntoView({block: 'end'}); d.scrollIntoView({block: 'end'});
+  return d;
+}
+window.showCrisisCard = function () {   // overrides safety.js so the card sits in the chat column
+  var c = document.createElement('div'); c.className = 'mc-crisis';
+  c.innerHTML = 'You are not alone, and help is available right now.<b>Helpline HEAL: 15555</b>If you are in immediate danger, call your local emergency number.';
+  $('msgs').appendChild(c); c.scrollIntoView({block: 'end'});
+};
+$('chips').onclick = function (e) { if (e.target.tagName === 'BUTTON') { $('inp').value = e.target.textContent; send(); } };
+$('inp').oninput = function () { this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'; };
+$('inp').onkeydown = function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+$('send').onclick = send;
+async function send() {
+  var msg = $('inp').value.trim(); if (!msg || busy) return;
+  $('empty').style.display = 'none'; $('newChat').style.display = '';
+  add('user', msg); $('inp').value = ''; $('inp').style.height = 'auto'; busy = true; $('send').disabled = true;
+  var wait = add('bot', '…');
+  try {
+    var res = await fetch('/api/guest/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: msg, history: hist})});
+    var data = await res.json(); wait.remove();
+    if (!res.ok) throw new Error(data.detail || 'Error');
+    add('bot', data.answer, data.sources);
+    hist.push({role: 'user', content: msg}, {role: 'assistant', content: data.answer}); hist = hist.slice(-6);
+    if (data.crisis) showCrisisCard();
+    if (data.remaining !== null && data.remaining !== undefined)
+      $('foot').firstChild.textContent = data.remaining + ' visitor messages left today. Nothing is saved and no child records are used. General information only, not medical advice.';
+  } catch (e) { wait.remove(); add('bot', e.message); }
+  busy = false; $('send').disabled = false; $('inp').focus();
+}
+</script>
+<script src="/safety.js"></script>
+</body></html>
