@@ -84,7 +84,12 @@ data/       knowledge base documents (the vector store is rebuilt automatically)
 
 ## Screenshots
 
-_Add screenshots here: visitor chat, parent chat, therapist dashboard, `/docs`._
+<img width="958" height="410" alt="image" src="https://github.com/user-attachments/assets/c04d2bb7-a076-4779-8139-98d7ebdce9a1" />
+<img width="955" height="411" alt="image" src="https://github.com/user-attachments/assets/3c5bdd58-be84-4bc6-bd8e-6ea1616bee9c" />
+<img width="959" height="470" alt="image" src="https://github.com/user-attachments/assets/05fb7d58-4dbd-470d-b952-d92620663dbc" />
+<img width="957" height="455" alt="image" src="https://github.com/user-attachments/assets/cc42168e-3b06-4dd2-ac8a-c6f72d676d98" />
+<img width="950" height="455" alt="image" src="https://github.com/user-attachments/assets/29ae9d9b-1be2-4292-a182-49babbc04279" />
+<img width="740" height="448" alt="image" src="https://github.com/user-attachments/assets/a5f8ca53-f8f8-4e7f-9560-6c58dc4e59b1" />
 
 ## Limitations
 
