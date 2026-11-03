@@ -215,15 +215,15 @@ function addMsg(role, text, sources=[]) {
   div.appendChild(av); div.appendChild(bub);
   msgs.appendChild(div);
   // 在response下显示该respond的Sources来自哪个/哪些.txt
-  // if (sources && sources.length) {
-  //   const sd = document.createElement('div'); sd.className = 'sources';
-  //   const btn = document.createElement('button'); btn.className = 'sources-btn';
-  //   btn.textContent = '📚 Sources (' + sources.length + ')';
-  //   const ul = document.createElement('ul'); ul.className = 'sources-list';
-  //   btn.onclick = () => ul.style.display = ul.style.display==='none'?'block':'none';
-  //   sources.forEach(s => { const li=document.createElement('li'); li.textContent='📄 '+s; ul.appendChild(li); });
-  //   sd.appendChild(btn); sd.appendChild(ul); msgs.appendChild(sd);
-  // }
+  if (sources && sources.length) {
+    const sd = document.createElement('div'); sd.className = 'sources';
+    const btn = document.createElement('button'); btn.className = 'sources-btn';
+    btn.textContent = '📚 Sources (' + sources.length + ')';
+    const ul = document.createElement('ul'); ul.className = 'sources-list';
+    btn.onclick = () => ul.style.display = getComputedStyle(ul).display === 'none' ? 'block' : 'none';
+    sources.forEach(s => { const li=document.createElement('li'); li.textContent='📄 '+s; ul.appendChild(li); });
+    sd.appendChild(btn); sd.appendChild(ul); msgs.appendChild(sd);
+  }
   msgs.scrollTop = msgs.scrollHeight;
 }
 
