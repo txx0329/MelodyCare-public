@@ -86,11 +86,11 @@ data/       knowledge base documents (the vector store is rebuilt automatically)
 
 <img width="958" height="410" alt="image" src="https://github.com/user-attachments/assets/c04d2bb7-a076-4779-8139-98d7ebdce9a1" />
 <img width="955" height="411" alt="image" src="https://github.com/user-attachments/assets/3c5bdd58-be84-4bc6-bd8e-6ea1616bee9c" />
-<img width="959" height="470" alt="image" src="https://github.com/user-attachments/assets/05fb7d58-4dbd-470d-b952-d92620663dbc" />
+<img width="959" height="435" alt="image" src="https://github.com/user-attachments/assets/76a32005-effe-449f-baa6-85b0c03aa77c" />
 <img width="957" height="455" alt="image" src="https://github.com/user-attachments/assets/cc42168e-3b06-4dd2-ac8a-c6f72d676d98" />
 <img width="950" height="455" alt="image" src="https://github.com/user-attachments/assets/29ae9d9b-1be2-4292-a182-49babbc04279" />
 <img width="740" height="448" alt="image" src="https://github.com/user-attachments/assets/a5f8ca53-f8f8-4e7f-9560-6c58dc4e59b1" />
 
 ## Limitations
 
-Keyword-based crisis detection; in-memory rate limits that reset on restart; no formal evaluation of answer quality is included in this repository; the helpline number shown (Helpline HEAL 15555) should be verified before any real-world use.
+Keyword-based crisis detection; in-memory rate limits that reset on restart; no formal evaluation of answer quality is included in this repository; the helpline number shown (Helpline HEAL 15555) should be verified before any real-world use. Source files are shown when an answer is generated but are not stored with the chat history.
