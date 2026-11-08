@@ -3,13 +3,24 @@
 An AI-assisted parent support system for a (fictional) child and family psychology centre. It combines a Retrieval-Augmented Generation (RAG) chatbot, a therapist analytics dashboard and a small public API. Built as an individual Final Year Project at TAR UMT.
 
 > **All organisations, people, addresses, phone numbers and patient records in this repository are fictional** and exist only for demonstration. This is a proof of concept, not a medical device, and it has not been clinically validated.
+ 
+## Live demo
+
+**https://melodycare-m14l.onrender.com** (free tier: the first load can take about a minute)
+
+| Role | Email | Password |
+|---|---|---|
+| Parent | `demo.parent@melodycare.my` | `demoparent` |
+| Therapist | `demo.admin@melodycare.my` | `demoadmin` |
+
+All data is synthetic. These accounts are shared by everyone, so please don't enter personal information. The therapist account only shows the demo parent's data, and chat limits apply to each account.
 
 ## What it does
 
 | Who | What they get |
 |---|---|
 | **Visitor** (no login) | A ChatGPT-style home page that answers questions about the centre (location, parking, hours, services, team) and gives general parenting guidance. Nothing is saved and no child records are used. |
-| **Parent** (login) | A personalised assistant that knows the parent's child and treatment history, with saved chat sessions. |
+| **Parent** (login) | A personalised assistant that knows the parent's child and treatment history, with a child info card and saved chat sessions. |
 | **Therapist / admin** (login) | A dashboard with sentiment trends, an overview of families, therapist performance, and an assistant that can answer questions about the data. |
 | **Partner developer** (API key) | `POST /api/v1/chat` plus an embeddable chat widget, with per-key quotas. |
 
