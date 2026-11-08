@@ -58,3 +58,28 @@ def check_guest(ip: str):
     _day["g"] += 1
     _ip_day[ip] += 1
     return True, "", IP_DAILY - _ip_day[ip]
+
+
+USER_PER_MIN = int(os.getenv("USER_PER_MIN", "6"))            # chat messages per logged-in account per minute
+USER_DAILY = int(os.getenv("USER_DAILY", "60"))               # per account per day
+USER_GLOBAL_DAILY = int(os.getenv("USER_GLOBAL_DAILY", "400"))  # all logged-in accounts together per day
+_u_day = {"d": None, "g": 0}
+_u_used = defaultdict(int)
+
+
+def check_user(user_id: int):
+    """Limits for logged-in chat, so shared demo accounts cannot drain the Gemini quota.
+    Returns (allowed, message). In-memory: resets on restart."""
+    today = time.strftime("%Y-%m-%d")
+    if _u_day["d"] != today:
+        _u_day.update(d=today, g=0)
+        _u_used.clear()
+    if not rate_ok(f"user:{user_id}", USER_PER_MIN, 60):
+        return False, "You are sending messages very quickly. Please wait a minute and try again."
+    if _u_day["g"] >= USER_GLOBAL_DAILY:
+        return False, "The chat has reached its limit for today. Please try again tomorrow."
+    if _u_used[user_id] >= USER_DAILY:
+        return False, "This account has reached its daily message limit. Please try again tomorrow."
+    _u_day["g"] += 1
+    _u_used[user_id] += 1
+    return True, ""

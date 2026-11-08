@@ -21,7 +21,8 @@ from admin_rag import admin_answer
 from database import init_db, get_db, User, Patient, MedicalRecord, Appointment, ChatSession, ChatMessage, FeedbackEvent
 from sentiment import analyse_sentiment
 from llm_utils import friendly_error
-from safety import detect_crisis, check_guest, CRISIS_FALLBACK
+from safety import detect_crisis, check_guest, check_user, CRISIS_FALLBACK
+from scope import visible_user_ids
 from rag_chain import answer_guest
 from api_v1 import router as api_v1_router
 
@@ -157,6 +158,10 @@ All treatment records:"""
     )
 
     crisis = detect_crisis(request.message)
+    if not crisis:  # never block someone who may be in distress
+        ok, reason = check_user(current_user.id)
+        if not ok:
+            raise HTTPException(status_code=429, detail=reason)
     try:
         # -------------------------------------------------------------
         # ⚡ 优化 2：把【回答生成】和【情感分析】并发异步跑！
@@ -235,19 +240,30 @@ async def admin_chat(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access only")
 
+    ok, reason = check_user(current_user.id)
+    if not ok:
+        raise HTTPException(status_code=429, detail=reason)
+
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="API key not configured")
 
     # 1. 将耗时的数据库 Context 组装放到独立后台线程，避免阻塞主事件循环
     def build_admin_context():
-        patients = db.query(Patient).all()
+        scope = visible_user_ids(current_user, db)
+        pq = db.query(Patient)
+        if scope is not None:
+            pq = pq.filter(Patient.parent_id.in_(scope))
+        patients = pq.all()
         today = date.today()
         week_end = today + timedelta(days=7)
-        appointments = db.query(Appointment).filter(
+        aq = db.query(Appointment).filter(
             Appointment.date >= today,
             Appointment.date <= week_end
-        ).order_by(Appointment.date, Appointment.time).all()
+        )
+        if scope is not None:
+            aq = aq.filter(Appointment.patient_id.in_([p.id for p in patients]))
+        appointments = aq.order_by(Appointment.date, Appointment.time).all()
 
         db_context = "=== ALL PATIENTS ===\n"
         for p in patients:
@@ -383,6 +399,9 @@ def sentiment_trend(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access only")
+    scope = visible_user_ids(current_user, db)
+    if scope is not None and user_id not in scope:
+        raise HTTPException(status_code=404, detail="User not found")
     
     messages = db.query(ChatMessage).join(ChatSession).filter(
         ChatSession.user_id == user_id,
@@ -416,7 +435,11 @@ def analytics_overview(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access only")
 
-    users = db.query(User).filter(User.role == "user").all()
+    scope = visible_user_ids(current_user, db)
+    uq = db.query(User).filter(User.role == "user")
+    if scope is not None:
+        uq = uq.filter(User.id.in_(scope))
+    users = uq.all()
     result = []
 
     for user in users:
@@ -491,11 +514,15 @@ def therapist_performance(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access only")
 
-    messages = db.query(ChatMessage).filter(
+    scope = visible_user_ids(current_user, db)
+    mq = db.query(ChatMessage).filter(
         ChatMessage.role == "user",
         ChatMessage.sentiment_score != None,
         ChatMessage.related_therapist != None
-    ).all()
+    )
+    if scope is not None:
+        mq = mq.join(ChatSession, ChatMessage.session_id == ChatSession.id).filter(ChatSession.user_id.in_(scope))
+    messages = mq.all()
 
     therapist_data = {}
     for m in messages:
@@ -504,9 +531,10 @@ def therapist_performance(
             therapist_data[t] = {"scores": [], "complaints": 0, "praises": 0}
         therapist_data[t]["scores"].append(m.sentiment_score)
 
-    feedbacks = db.query(FeedbackEvent).filter(
-        FeedbackEvent.therapist != None
-    ).all()
+    fq = db.query(FeedbackEvent).filter(FeedbackEvent.therapist != None)
+    if scope is not None:
+        fq = fq.filter(FeedbackEvent.user_id.in_(scope))
+    feedbacks = fq.all()
     for f in feedbacks:
         t = f.therapist
         if t in therapist_data:
@@ -538,6 +566,9 @@ def sentiment_history(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access only")
+    scope = visible_user_ids(current_user, db)
+    if scope is not None and user_id not in scope:
+        raise HTTPException(status_code=404, detail="User not found")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -606,10 +637,14 @@ def find_user_by_name(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access only")
-    users = db.query(User).filter(
+    scope = visible_user_ids(current_user, db)
+    uq = db.query(User).filter(
         User.name.ilike(f"%{name}%"),
         User.role == "user"
-    ).all()
+    )
+    if scope is not None:
+        uq = uq.filter(User.id.in_(scope))
+    users = uq.all()
     return [{"id": u.id, "name": u.name} for u in users]
 
 class GuestChatRequest(BaseModel):
@@ -642,6 +677,27 @@ async def guest_chat(req: GuestChatRequest, request: Request):
     except Exception as e:
         print(f"Guest chat error: {e}")
         raise HTTPException(status_code=503, detail=friendly_error(e))
+
+
+@app.get("/api/me/children")
+def my_children(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Basic info about the logged-in parent's own children (never anyone else's)."""
+    out = []
+    for p in db.query(Patient).filter(Patient.parent_id == current_user.id).order_by(Patient.id).all():
+        recs = sorted(p.records, key=lambda r: r.date)
+        nxt = (db.query(Appointment)
+               .filter(Appointment.patient_id == p.id, Appointment.date >= date.today(), Appointment.status == "scheduled")
+               .order_by(Appointment.date, Appointment.time).first())
+        out.append({
+            "id": p.id, "name": p.name, "age": p.age, "gender": p.gender, "diagnosis": p.diagnosis,
+            "treatment_start": recs[0].date.isoformat() if recs else None,
+            "treatment_days": (date.today() - recs[0].date).days if recs else None,
+            "sessions": len(recs),
+            "last_session": recs[-1].date.isoformat() if recs else None,
+            "therapist": recs[-1].therapist if recs else None,
+            "next_appointment": {"date": nxt.date.isoformat(), "time": nxt.time, "type": nxt.type, "therapist": nxt.therapist} if nxt else None,
+        })
+    return out
 
 
 app.include_router(api_v1_router)
