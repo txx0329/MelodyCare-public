@@ -6,7 +6,7 @@ An AI-assisted parent support system for a (fictional) child and family psycholo
  
 ## Live demo
 
-**https://melodycare-m14l.onrender.com** (free tier: the first load can take about a minute)
+**https://melodycare-m14l.onrender.com** 
 
 | Role | Email | Password |
 |---|---|---|
