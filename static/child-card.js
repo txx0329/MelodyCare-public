@@ -12,18 +12,15 @@
 
   var css = document.createElement('style');
   css.textContent =
-    '.kc{background:var(--primary-light,#e8f6ee);border-bottom:1px solid var(--border,#d8e8e0);padding:12px 20px;font-size:14px}' +
+    '.kc{background:var(--primary-light,#e8f6ee);border-bottom:1px solid var(--border,#d8e8e0);padding:8px 20px;font-size:14px}' +
     '.kc-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}' +
     '.kc-av{width:34px;height:34px;border-radius:50%;background:var(--primary,#16a34a);color:#fff;display:grid;place-items:center;font-weight:700}' +
     '.kc-name{font-weight:700;font-size:15px}.kc-meta{color:var(--muted,#5b6f68)}' +
-    '.kc select,.kc-tog{margin-left:auto;border:1px solid var(--border,#cfe3d8);background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer}' +
-    '.kc-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}' +
+    '.kc-top>:last-child{margin-left:auto}.kc select,.kc-tog{border:1px solid var(--border,#cfe3d8);background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer}' +
+    '.kc-pills{display:flex;gap:6px;flex-wrap:wrap}' +
     '.kc-pill{background:#fff;border:1px solid var(--border,#cfe3d8);border-radius:999px;padding:3px 12px;font-size:13px}' +
-    '.kc-det{display:none;margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 16px}' +
-    '.kc-det.open{display:grid}.kc-det b{color:var(--muted,#5b6f68);font-weight:600}' +
-    '.kc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}' +
-    '.kc-chip{background:#fff;border:1px solid var(--primary,#16a34a);color:var(--primary-dark,#15803d);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer}' +
-    '.kc-chip:hover{background:var(--primary,#16a34a);color:#fff}';
+    '.kc-det{display:none;margin-top:6px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 16px}' +
+    '.kc-det.open{display:grid}.kc-det b{color:var(--muted,#5b6f68);font-weight:600}';
   document.head.appendChild(css);
 
   var card = document.createElement('div');
@@ -46,15 +43,16 @@
       sel.onchange = function () { render(kids[sel.value]); };
       top.appendChild(sel);
     }
-    var tog = el('button', 'kc-tog', 'Details ▾'); tog.type = 'button';
-    top.appendChild(tog);
-    card.appendChild(top);
-
     var pills = el('div', 'kc-pills');
     if (k.treatment_days != null) pills.appendChild(el('span', 'kc-pill', 'Day ' + k.treatment_days + ' of treatment'));
     pills.appendChild(el('span', 'kc-pill', k.sessions + (k.sessions === 1 ? ' session' : ' sessions') + ' recorded'));
     if (k.next_appointment) pills.appendChild(el('span', 'kc-pill', 'Next: ' + fmt(k.next_appointment.date) + ', ' + k.next_appointment.time));
-    card.appendChild(pills);
+    top.appendChild(pills);
+
+    var tog = el('button', 'kc-tog', 'Details ▾'); tog.type = 'button';
+    top.appendChild(tog);
+
+    card.appendChild(top);
 
     var det = el('div', 'kc-det');
     [['Diagnosis', k.diagnosis || '–'], ['Therapist', k.therapist || '–'], ['Treatment started', fmt(k.treatment_start)], ['Last session', fmt(k.last_session)],
@@ -63,16 +61,6 @@
     });
     card.appendChild(det);
     tog.onclick = function () { var o = det.classList.toggle('open'); tog.textContent = o ? 'Details ▴' : 'Details ▾'; };
-
-    var first = (k.name || 'my child').split(' ')[0];
-    var chips = el('div', 'kc-chips');
-    ['How is ' + first + ' progressing?', 'What can I try at home with ' + first + '?',
-     'What should I ask ' + (k.therapist || 'the therapist') + ' at the next session?'].forEach(function (q) {
-      var b = el('button', 'kc-chip', q); b.type = 'button';
-      b.onclick = function () { var i = document.getElementById('msgInput'); if (i) { i.value = q; i.focus(); } };
-      chips.appendChild(b);
-    });
-    card.appendChild(chips);
   }
   render(kids[0]);
 })();
