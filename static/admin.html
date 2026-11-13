@@ -150,7 +150,7 @@ async function loadBIData() {
   try {
     const r1 = await fetch('/api/analytics/overview', { headers: {'Authorization': 'Bearer ' + token} });
     _biData = await r1.json();
-    const r2 = await fetch('/api/analytics/therapist-performance', { headers: {'Authorization': 'Bearer ' + token} });
+    const r2 = await fetch('/api/analytics/therapist-concerns', { headers: {'Authorization': 'Bearer ' + token} });
     _therapistData = await r2.json();
   } catch(e) { console.error(e); }
 }
@@ -421,49 +421,55 @@ async function showBIDashboard() {
         </div>
       `).join('')}
     </div>
-
-    <!-- Therapist Performance -->
+        <!-- Therapist Feedback Review -->
     <div style="background:var(--bg);border-radius:12px;padding:16px;border:1px solid var(--border)">
-      <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">👨‍⚕️ Therapist Performance</h3>
-      ${therapistData.length === 0 ? '<p style="color:var(--muted);font-size:13px">No therapist data yet.</p>' : `
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead>
-          <tr style="border-bottom:2px solid var(--border)">
-            <th style="padding:10px 8px;text-align:left;font-weight:600">Therapist</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:600">Interactions</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:600">Avg Satisfaction</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:600">Complaints</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:600">Praises</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:600">Performance</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${therapistData.map(t => {
-            const perf = t.avg_sentiment_score >= 4 ? 'Good' : t.avg_sentiment_score >= 3 ? 'Average' : 'Needs Review';
-            const perfColor = t.avg_sentiment_score >= 4 ? '#16a34a' : t.avg_sentiment_score >= 3 ? '#d97706' : '#dc2626';
-            const perfBg = t.avg_sentiment_score >= 4 ? '#dcfce7' : t.avg_sentiment_score >= 3 ? '#fef3c7' : '#fef2f2';
-            return `
-            <tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:10px 8px;font-weight:500">${t.therapist}</td>
-              <td style="padding:10px 8px;text-align:center">${t.total_interactions}</td>
-              <td style="padding:10px 8px;text-align:center">
-                <div style="font-weight:700;color:${perfColor}">${t.avg_sentiment_score}/5</div>
-                <div style="font-size:11px;color:var(--muted)">${t.satisfaction_rate}%</div>
-              </td>
-              <td style="padding:10px 8px;text-align:center">
-                ${t.complaints > 0 ? `<span style="color:#dc2626;font-weight:600">${t.complaints}</span>` : '<span style="color:#16a34a">0</span>'}
-              </td>
-              <td style="padding:10px 8px;text-align:center">
-                ${t.praises > 0 ? `<span style="color:#16a34a;font-weight:600">${t.praises}</span>` : '0'}
-              </td>
-              <td style="padding:10px 8px;text-align:center">
-                <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${perfBg};color:${perfColor}">${perf}</span>
-              </td>
-            </tr>
-          `}).join('')}
-        </tbody>
-      </table>
-      `}
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">🧭 Therapist Feedback Review</h3>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Each complaint is checked for who it is about and how emotional the parent was, to tell real concerns about a therapist apart from emotional venting. Flags are for human review, not a verdict.</p>
+      ${therapistData.length === 0 ? '<p style="color:var(--muted);font-size:13px">No complaints or praise recorded yet.</p>' : therapistData.map(t => {
+        const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        const C = {
+          therapist_concern: ['Therapist concern', '#dc2626', '#fef2f2'],
+          emotional_venting: ['Emotional venting', '#b45309', '#fef3c7'],
+          unclear: ['Unclear', '#64748b', '#e4edf7'],
+          not_about_therapist: ['Not about therapist', '#2563eb', '#eff6ff'],
+          not_assessed: ['Not assessed', '#94a3b8', '#f8fafc']
+        };
+        const cc = k => C[k] || C.not_assessed;
+        const chip = (k, n) => n > 0 ? `<span style="padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${cc(k)[2]};color:${cc(k)[1]}">${cc(k)[0]}: ${n}</span>` : '';
+        const note = {
+          pattern: ['Concerns from several families: review recommended', '#dc2626'],
+          isolated: ['Isolated concern: keep an eye on it', '#b45309'],
+          venting_only: ['Complaints look emotional: consider a family check-in', '#b45309'],
+          none: ['No flags', '#16a34a']
+        }[t.attention] || ['No flags', '#16a34a'];
+        const rec = r => {
+          const why = r.reason || (r.class === 'not_assessed' ? 'Saved before complaint triage was added.' : '');
+          return `
+          <div style="margin-top:8px;padding:10px 12px;border:1px solid var(--border);border-left:4px solid ${cc(r.class)[1]};border-radius:8px;background:#fff">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${cc(r.class)[2]};color:${cc(r.class)[1]}">${cc(r.class)[0]}</span>
+              <span style="font-size:11px;color:var(--muted)">${esc(r.date)}${r.parent ? ' · ' + esc(r.parent) : ''}</span>
+            </div>
+            <div style="font-size:13px;line-height:1.5;margin-top:6px">${esc(r.summary)}</div>
+            ${why ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">Why: ${esc(why)}</div>` : ''}
+          </div>`;
+        };
+        const list = t.recent || [];
+        return `
+        <div style="border-top:1px solid var(--border);padding:16px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+            <span style="font-weight:600;font-size:14px">${esc(t.therapist)}</span>
+            <span style="font-size:12px;font-weight:600;color:${note[1]}">${note[0]}</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            ${chip('therapist_concern', t.therapist_concern)}${chip('emotional_venting', t.emotional_venting)}${chip('unclear', t.unclear)}${chip('not_about_therapist', t.not_about_therapist)}${chip('not_assessed', t.not_assessed)}
+            ${t.praises > 0 ? `<span style="padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#dcfce7;color:#16a34a">Praises: ${t.praises}</span>` : ''}
+          </div>
+          ${t.complaints === 0 ? '' : `<div style="font-size:12px;color:var(--muted);margin-top:6px">${t.complaints} complaint${t.complaints === 1 ? '' : 's'} in total${t.therapist_concern > 0 ? ' · concerns raised by ' + t.families_raising_concerns + ' famil' + (t.families_raising_concerns === 1 ? 'y' : 'ies') : ''}${t.venting_families.length ? ' · venting: ' + t.venting_families.map(esc).join(', ') + ' (a check-in may help)' : ''}</div>`}
+          ${list.slice(0, 3).map(rec).join('')}
+          ${list.length > 3 ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;font-weight:600;color:#15803d">Show ${list.length - 3} more</summary>${list.slice(3).map(rec).join('')}</details>` : ''}
+        </div>`;
+      }).join('')}
     </div>
   `;
 

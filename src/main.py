@@ -20,6 +20,7 @@ from auth import verify_password, create_token, get_current_user
 from admin_rag import admin_answer
 from database import init_db, get_db, User, Patient, MedicalRecord, Appointment, ChatSession, ChatMessage, FeedbackEvent
 from sentiment import analyse_sentiment
+from triage import classify as triage_classify
 from llm_utils import friendly_error
 from safety import detect_crisis, check_guest, check_user, CRISIS_FALLBACK
 from scope import visible_user_ids
@@ -170,8 +171,15 @@ All treatment records:"""
         answer_task = asyncio.to_thread(
             answer_query, request.message, api_key, patient_context, history
         )
+        recent = (
+            db.query(ChatMessage.sentiment_score)
+            .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+            .filter(ChatSession.user_id == current_user.id, ChatMessage.role == "user", ChatMessage.sentiment_score != None)
+            .order_by(ChatMessage.id.desc()).limit(10).all()
+        )
+        baseline = round(sum(r[0] for r in recent) / len(recent), 2) if len(recent) >= 3 else None
         sentiment_task = asyncio.to_thread(
-            analyse_sentiment, request.message, api_key
+            analyse_sentiment, request.message, api_key, baseline
         )
 
         result, sentiment = await asyncio.gather(answer_task, sentiment_task)
@@ -203,6 +211,10 @@ All treatment records:"""
             and sentiment["summary"]
         ):
             patient_id = children[0].id if children else None
+            t_class, t_reason = triage_classify(
+                sentiment["event_type"], sentiment.get("complaint_target"), sentiment.get("emotional_intensity"),
+                sentiment.get("is_specific"), sentiment["score"], baseline,
+            )
             db.add(
                 FeedbackEvent(
                     user_id=current_user.id,
@@ -212,6 +224,11 @@ All treatment records:"""
                     sentiment_score=sentiment["score"],
                     event_type=sentiment["event_type"],
                     content_summary=sentiment["summary"],
+                    complaint_target=sentiment.get("complaint_target"),
+                    emotional_intensity=sentiment.get("emotional_intensity"),
+                    is_specific=sentiment.get("is_specific"),
+                    triage_class=t_class,
+                    triage_reason=t_reason or sentiment.get("triage_reason"),
                 )
             )
 
@@ -507,56 +524,73 @@ def analytics_overview(
 
 
 @app.get("/api/analytics/therapist-performance")
-def therapist_performance(
+def therapist_performance_removed(current_user: User = Depends(get_current_user)):
+    """Kept only so an older admin page does not break. Replaced by /api/analytics/therapist-concerns."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access only")
+    return []
+
+
+@app.get("/api/analytics/therapist-concerns")
+def therapist_concerns(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Complaints and praise per therapist. Complaints are split into real concerns about the therapist
+    and emotional venting, so a parent's bad day is not counted against a therapist."""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access only")
-
     scope = visible_user_ids(current_user, db)
-    mq = db.query(ChatMessage).filter(
-        ChatMessage.role == "user",
-        ChatMessage.sentiment_score != None,
-        ChatMessage.related_therapist != None
-    )
+    q = db.query(FeedbackEvent).filter(FeedbackEvent.therapist != None)
     if scope is not None:
-        mq = mq.join(ChatSession, ChatMessage.session_id == ChatSession.id).filter(ChatSession.user_id.in_(scope))
-    messages = mq.all()
+        q = q.filter(FeedbackEvent.user_id.in_(scope))
+    events = q.order_by(FeedbackEvent.created_at.desc()).all()
+    names = {u.id: u.name for u in db.query(User).filter(User.id.in_({e.user_id for e in events})).all()} if events else {}
 
-    therapist_data = {}
-    for m in messages:
-        t = m.related_therapist
-        if t not in therapist_data:
-            therapist_data[t] = {"scores": [], "complaints": 0, "praises": 0}
-        therapist_data[t]["scores"].append(m.sentiment_score)
-
-    fq = db.query(FeedbackEvent).filter(FeedbackEvent.therapist != None)
-    if scope is not None:
-        fq = fq.filter(FeedbackEvent.user_id.in_(scope))
-    feedbacks = fq.all()
-    for f in feedbacks:
-        t = f.therapist
-        if t in therapist_data:
-            if f.event_type == "complaint":
-                therapist_data[t]["complaints"] += 1
-            elif f.event_type == "praise":
-                therapist_data[t]["praises"] += 1
+    out = {}
+    for e in events:
+        d = out.setdefault(e.therapist, {
+            "therapist": e.therapist, "praises": 0, "complaints": 0, "therapist_concern": 0, "emotional_venting": 0,
+            "unclear": 0, "not_about_therapist": 0, "not_assessed": 0,
+            "_concern_families": set(), "_venting_families": set(), "recent": [],
+        })
+        if e.event_type == "praise":
+            d["praises"] += 1
+            continue
+        if e.event_type != "complaint":
+            continue
+        cls = e.triage_class or "not_assessed"  # complaints saved before triage existed
+        d["complaints"] += 1
+        d[cls] = d.get(cls, 0) + 1
+        if cls == "therapist_concern":
+            d["_concern_families"].add(e.user_id)
+        elif cls == "emotional_venting":
+            d["_venting_families"].add(names.get(e.user_id, "Unknown"))
+        if len(d["recent"]) < 6:
+            d["recent"].append({
+                "date": e.created_at.date().isoformat() if e.created_at else None, "class": cls,
+                "summary": e.content_summary, "reason": e.triage_reason, "parent": names.get(e.user_id),
+            })
 
     result = []
-    for therapist, data in therapist_data.items():
-        scores = data["scores"]
-        result.append({
-            "therapist": therapist,
-            "total_interactions": len(scores),
-            "avg_sentiment_score": round(sum(scores) / len(scores), 2),
-            "complaints": data["complaints"],
-            "praises": data["praises"],
-            "satisfaction_rate": round((sum(scores) / len(scores)) * 100, 1)
-        })
-
-    result.sort(key=lambda x: x["avg_sentiment_score"], reverse=True)
+    for d in out.values():
+        fams = d.pop("_concern_families")
+        venting = d.pop("_venting_families")
+        d["families_raising_concerns"] = len(fams)
+        d["venting_families"] = sorted(venting)
+        if d["therapist_concern"] >= 2 and len(fams) >= 2:
+            d["attention"] = "pattern"
+        elif d["therapist_concern"] >= 1:
+            d["attention"] = "isolated"
+        elif d["emotional_venting"] >= 1:
+            d["attention"] = "venting_only"
+        else:
+            d["attention"] = "none"
+        result.append(d)
+    order = {"pattern": 0, "isolated": 1, "venting_only": 2, "none": 3}
+    result.sort(key=lambda x: (order[x["attention"]], x["therapist"]))
     return result
+
 
 @app.get("/api/analytics/sentiment-history/{user_id}")
 def sentiment_history(

@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Text, Date, ForeignKey, DateTime, Float
+from sqlalchemy import create_engine, Column, Integer, String, Text, Date, ForeignKey, DateTime, Float, Boolean, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -109,10 +109,38 @@ class FeedbackEvent(Base):
     event_type = Column(String(20), nullable=True)
     content_summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # complaint triage (added later; init_db() adds these columns to an existing database)
+    complaint_target = Column(String(30), nullable=True)
+    emotional_intensity = Column(String(30), nullable=True)
+    is_specific = Column(Boolean, nullable=True)
+    triage_class = Column(String(30), nullable=True)
+    triage_reason = Column(Text, nullable=True)
+
+
+_NEW_FEEDBACK_COLUMNS = {
+    "complaint_target": "VARCHAR(30)",
+    "emotional_intensity": "VARCHAR(30)",
+    "is_specific": "BOOLEAN",
+    "triage_class": "VARCHAR(30)",
+    "triage_reason": "TEXT",
+}
+
+
+def _add_missing_columns():
+    """Adds the triage columns to an existing feedback_events table (create_all never alters tables)."""
+    insp = inspect(engine)
+    if "feedback_events" not in insp.get_table_names():
+        return
+    have = {c["name"] for c in insp.get_columns("feedback_events")}
+    with engine.begin() as conn:
+        for name, sql_type in _NEW_FEEDBACK_COLUMNS.items():
+            if name not in have:
+                conn.execute(text(f"ALTER TABLE feedback_events ADD COLUMN {name} {sql_type}"))
 
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
 
 
 def get_db():
