@@ -38,15 +38,18 @@ flowchart LR
     X["Partner"] --> API["POST /api/v1/chat"]
     G & C & A & API --> S["Safety checks<br/>crisis keywords, rate limits"]
     S --> R["RAG retrieval<br/>ChromaDB + Gemini embeddings"]
+    G & C & API --> R
+    A --> DB
+    C --> DB[("PostgreSQL<br/>users, patients, records,<br/>chats, sentiment, feedback")]
     R --> L["Gemini with model fallback"]
-    C & A --> DB[("PostgreSQL<br/>users, patients, records,<br/>chats, sentiment")]
+    A --> L
 ```
 
 - **RAG**: knowledge-base documents are chunked and embedded into ChromaDB; the closest chunks are added to the prompt, and the answer shows which files it used.
 - **Personalisation**: a parent's child record is added to the prompt for logged-in parents (it is not retrieved from the vector store).
 - **Sentiment analysis**: each parent message is scored by the LLM and stored, which feeds the therapist dashboard.
 - **Complaint triage**: when a parent complains, the LLM labels who it is about (therapist, centre, the child's progress, the parent's own situation), how emotional the parent is, and whether it is specific. Simple rules, which also compare the message with the parent's usual mood, then sort it into *therapist concern*, *emotional venting*, *unclear* or *not about the therapist*, so a parent's bad day is not counted against a therapist. Flags are for human review, not a verdict.
-- **Safety**: crisis keywords (English, Malay, Chinese) trigger a fixed helpline message *without* calling the LLM, so it works even when the model is unavailable. A first-visit disclaimer and per-visitor rate limits protect users and the API quota. This detection is keyword-based and can miss cases.
+- **Safety**: crisis keywords (English, Malay, Chinese) are detected before anything else. On the public chat and the API a fixed helpline message is returned without calling the LLM. In the parent chat a helpline card is always shown, and a fixed reply is used if the model fails. Crisis messages are never blocked by rate limits. A first-visit disclaimer plus per-visitor, per-account and per-key rate limits protect users and the API quota. This detection is keyword-based and can miss cases.
 - **Reliability**: short retries, timeouts and automatic fallback across several Gemini models.
 - **API keys**: *server* keys are refused if sent from a browser; *browser* keys only work from the websites registered for them. Each key has its own quota, plus a global daily cap.
 
@@ -62,6 +65,7 @@ venv\Scripts\activate            # Windows   (macOS/Linux: source venv/bin/activ
 pip install -r requirements.txt
 copy .env.example .env           # macOS/Linux: cp .env.example .env, then edit .env
 python src/seed.py               # creates fictional demo data and prints demo logins once
+python src/create_demo_accounts.py   # optional: creates the two public demo accounts
 uvicorn src.main:app --reload --port 8002
 ```
 
@@ -93,7 +97,7 @@ A partner can have its own organisation details in `data/tenants/<key-name>.txt`
 ## Project structure
 
 ```
-src/        FastAPI app, RAG pipeline, safety checks, public API
+src/        FastAPI app, RAG pipeline, safety checks, complaint triage, public API
 static/     HTML pages and the chat widget
 data/       knowledge base documents (the vector store is rebuilt automatically)
 ```
